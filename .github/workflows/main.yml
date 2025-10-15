@@ -24,12 +24,12 @@ jobs:
 
       - name: Validate ADF resources
         run: |
-          npm run build validate "${{ github.workspace }}/<Root-folder-from-Git-configuration-settings-in-ADF>" /subscriptions/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx/resourceGroups/<Your-ResourceGroup-Name>/providers/Microsoft.DataFactory/factories/<Your-Factory-Name>
+          npm run build validate "${{ github.workspace }}" ${{ secrets.SuperSecret }}
         working-directory: ./build # replace as above
 
       - name: Validate and generate ARM template
         run: |
-          npm run build export "${{ github.workspace }}/<Root-folder-from-Git-configuration-settings-in-ADF>" /subscriptions/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx/resourceGroups/<Your-ResourceGroup-Name>/providers/Microsoft.DataFactory/factories/<Your-Factory-Name> "ArmTemplate"
+          npm run build export "${{ github.workspace }}" ${{ secrets.SuperSecret }} "ArmTemplate"
         # For preview mode, replace the above line with your preview command (ensure package.json contains it)
         working-directory: ./build
 
