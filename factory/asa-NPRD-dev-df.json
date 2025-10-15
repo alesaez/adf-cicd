@@ -1,0 +1,9 @@
+{
+	"name": "asa-NPRD-dev-df",
+	"location": "centralus",
+	"identity": {
+		"type": "SystemAssigned",
+		"principalId": "eca91384-582d-4dab-83a2-e4175db4c504",
+		"tenantId": "16b3c013-d300-468d-ac64-7eda0820b6d3"
+	}
+}
