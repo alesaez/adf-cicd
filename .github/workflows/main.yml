@@ -24,12 +24,12 @@ jobs:
 
       - name: Validate ADF resources
         run: |
-          npm run build validate "${{ github.workspace }}" ${{ secrets.SuperSecret }}
+          npm run build validate "${{ github.workspace }}" ${{ secrets.ADF_RESOURCE_ID }}
         working-directory: ./build # replace as above
 
       - name: Validate and generate ARM template
         run: |
-          npm run build export "${{ github.workspace }}" ${{ secrets.SuperSecret }} "ArmTemplate"
+          npm run build export "${{ github.workspace }}" ${{ secrets.ADF_RESOURCE_ID }} "ArmTemplate"
         # For preview mode, replace the above line with your preview command (ensure package.json contains it)
         working-directory: ./build
 
