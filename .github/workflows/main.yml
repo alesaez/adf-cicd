@@ -1,0 +1,38 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Use Node.js 18
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install npm packages
+        run: npm ci
+        working-directory: ./build # replace with the folder that contains package.json
+
+      - name: Validate ADF resources
+        run: |
+          npm run build validate "${{ github.workspace }}/<Root-folder-from-Git-configuration-settings-in-ADF>" /subscriptions/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx/resourceGroups/<Your-ResourceGroup-Name>/providers/Microsoft.DataFactory/factories/<Your-Factory-Name>
+        working-directory: ./build # replace as above
+
+      - name: Validate and generate ARM template
+        run: |
+          npm run build export "${{ github.workspace }}/<Root-folder-from-Git-configuration-settings-in-ADF>" /subscriptions/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx/resourceGroups/<Your-ResourceGroup-Name>/providers/Microsoft.DataFactory/factories/<Your-Factory-Name> "ArmTemplate"
+        # For preview mode, replace the above line with your preview command (ensure package.json contains it)
+        working-directory: ./build
+
+      - name: Upload ARM template artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ArmTemplates
+          path: ./build/ArmTemplate # replace with actual path where the export writes templates
