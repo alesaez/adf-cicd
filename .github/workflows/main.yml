@@ -61,13 +61,23 @@ jobs:
         with:
           azcliversion: latest
           inlineScript: |
-            
+            # List files for debugging
             ls -la ./build/ArmTemplate/linkedTemplates
 
+            # Create storage account and container if not exists
             az storage account create --name ${{ vars.ADF_STORAGE_ACCOUNT }} --resource-group ${{ vars.ADF_RESOURCE_GROUP }} --location ${{ vars.ADF_LOCATION }} --sku Standard_LRS --kind StorageV2 --access-tier Hot
             az storage container create --name linkedtemplates --account-name ${{ vars.ADF_STORAGE_ACCOUNT }} --public-access off --auth-mode login
+            
+            # Add current IP address to Storage Account firewall rules
+            MyIP=$(curl -s https://api.ipify.org)
+            echo "MyIP: $MyIP"
+            az storage account network-rule add --account-name ${{ vars.ADF_STORAGE_ACCOUNT }} --ip-address $MyIP/32
+            # Upload linked templates
             az storage blob upload-batch --account-name ${{ vars.ADF_STORAGE_ACCOUNT }} --source ./build/ArmTemplate/linkedTemplates --destination linkedtemplates --pattern "*.json" --overwrite --auth-mode login
-
+            # Remove current IP address from Storage Account firewall rules
+            az storage account network-rule remove --account-name ${{ vars.ADF_STORAGE_ACCOUNT }} --ip-address $MyIP/32
+            
+            # Generate SAS token for the container, valid for 30 minutes
             SASToken=$(az storage container generate-sas --name linkedtemplates --account-name ${{ vars.ADF_STORAGE_ACCOUNT }} --permissions rwdl --expiry $(date -u -d "30 minutes" '+%Y-%m-%dT%H:%MZ') --https-only --output tsv)
             echo "SASToken: $SASToken"
             echo "AZURE_STORAGE_CONTAINER_URI=https://${{ vars.ADF_STORAGE_ACCOUNT }}.blob.core.windows.net/linkedtemplates" >> "$GITHUB_ENV"
@@ -89,7 +99,7 @@ jobs:
       - name: Deploy ARM template (Linked) to Resource Group
         uses: azure/arm-deploy@v2
         with:
-          deploymentName: "adf-cicd-deployment-${{ github.run_id }}"
+          deploymentName: "adf-deployment-${{ github.run_id }}"
           resourceGroupName: ${{ vars.ADF_RESOURCE_GROUP }}
           template: ./build/ArmTemplate/linkedTemplates/ArmTemplate_master.json
           parameters: ./build/ArmTemplate/linkedTemplates/ArmTemplateParameters_master.json factoryName="${{ vars.ADF_NAME }}" AzureDataLakeStorage_properties_typeProperties_url="https://stasanprd.dfs.core.windows.net/" AzureSqlDatabase_properties_typeProperties_server="asa-nprd-sql.database.windows.net" AzureSqlDatabase_properties_typeProperties_database="AdventureWorksDB" containerUri="${{ env.AZURE_STORAGE_CONTAINER_URI }}" containerSasToken="${{ env.AZURE_STORAGE_SAS_TOKEN }}"
