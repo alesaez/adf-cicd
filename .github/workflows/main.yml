@@ -71,9 +71,15 @@ jobs:
             MyIP=$(curl -s https://api.ipify.org)
             echo "MyIP: $MyIP"
             az storage account network-rule add --account-name ${{ vars.ADF_STORAGE_ACCOUNT }} --ip-address $MyIP
+            # Wait for a few seconds to ensure the rule is applied
+            sleep 15
 
             echo "Create container if not exists"
-            az storage container create --name linkedtemplates --account-name ${{ vars.ADF_STORAGE_ACCOUNT }} --public-access off --auth-mode login
+            checkContainer=$(az storage container exists --name linkedtemplates --account-name ${{ vars.ADF_STORAGE_ACCOUNT }} --auth-mode login --query exists)
+            echo "checkContainer: $checkContainer"
+            if [ "$checkContainer" = "false" ]; then
+              az storage container create --name linkedtemplates --account-name ${{ vars.ADF_STORAGE_ACCOUNT }} --public-access off --auth-mode login
+            fi
 
             echo "Upload linked templates"
             az storage blob upload-batch --account-name ${{ vars.ADF_STORAGE_ACCOUNT }} --source ./build/ArmTemplate/linkedTemplates --destination linkedtemplates --pattern "*.json" --overwrite --auth-mode login
