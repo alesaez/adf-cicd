@@ -66,13 +66,15 @@ jobs:
 
             echo "Create storage account and container if not exists"
             az storage account create --name ${{ vars.ADF_STORAGE_ACCOUNT }} --resource-group ${{ vars.ADF_RESOURCE_GROUP }} --location ${{ vars.ADF_LOCATION }} --sku Standard_LRS --kind StorageV2 --access-tier Hot
-            az storage container create --name linkedtemplates --account-name ${{ vars.ADF_STORAGE_ACCOUNT }} --public-access off --auth-mode login
-
+            
             echo "Add current IP address to Storage Account firewall rules"
             MyIP=$(curl -s https://api.ipify.org)
             echo "MyIP: $MyIP"
             az storage account network-rule add --account-name ${{ vars.ADF_STORAGE_ACCOUNT }} --ip-address $MyIP/32
-            
+
+            echo "Create container if not exists"
+            az storage container create --name linkedtemplates --account-name ${{ vars.ADF_STORAGE_ACCOUNT }} --public-access off --auth-mode login
+
             echo "Upload linked templates"
             az storage blob upload-batch --account-name ${{ vars.ADF_STORAGE_ACCOUNT }} --source ./build/ArmTemplate/linkedTemplates --destination linkedtemplates --pattern "*.json" --overwrite --auth-mode login
 
