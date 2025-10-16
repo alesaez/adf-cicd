@@ -68,13 +68,12 @@ jobs:
             az storage container create --name linkedtemplates --account-name ${{ vars.ADF_STORAGE_ACCOUNT }} --public-access off --auth-mode login
             az storage blob upload-batch --account-name ${{ vars.ADF_STORAGE_ACCOUNT }} --source ./build/ArmTemplate/linkedTemplates --destination linkedtemplates --pattern "*.json" --overwrite --auth-mode login
 
-            SASToken=$(az storage/container generate-sas --name linkedtemplates --account-name ${{ vars.ADF_STORAGE_ACCOUNT }} --permissions rwdl --expiry $(date -u -d "30 minutes" '+%Y-%m-%dT%H:%MZ') --https-only --output tsv)
+            SASToken=$(az storage container generate-sas --name linkedtemplates --account-name ${{ vars.ADF_STORAGE_ACCOUNT }} --permissions rwdl --expiry $(date -u -d "30 minutes" '+%Y-%m-%dT%H:%MZ') --https-only --output tsv)
             echo "SASToken: $SASToken"
             echo "AZURE_STORAGE_CONTAINER_URI=https://${{ vars.ADF_STORAGE_ACCOUNT }}.blob.core.windows.net/linkedtemplates" >> "$GITHUB_ENV"
             echo "AZURE_STORAGE_SAS_TOKEN=$SASToken" >> "$GITHUB_ENV"
 
-            
-
+          
       # TODO: Add PrePostDeployment script steps here if needed
 
       # - name: Deploy ARM template to Resource Group
