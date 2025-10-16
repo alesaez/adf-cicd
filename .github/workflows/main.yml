@@ -62,8 +62,8 @@ jobs:
           azcliversion: latest
           inlineScript: |
             az storage account create --name ${{ vars.ADF_STORAGE_ACCOUNT }} --resource-group ${{ vars.ADF_RESOURCE_GROUP }} --location ${{ vars.ADF_LOCATION }} --sku Standard_LRS --kind StorageV2 --access-tier Hot
-            blobSASToken=$(az storage account generate-sas --permissions acdlrw --account-name ${{ vars.ADF_STORAGE_ACCOUNT }} --services b --resource-types sco --expiry $(date -u -d "30 minutes" '+%Y-%m-%dT%H:%MZ') --https-only --output tsv)
-            az storage container create --name linkedtemplates --account-name ${{ vars.ADF_STORAGE_ACCOUNT }} --public-access off --sas-token $blobSASToken
+            #blobSASToken=$(az storage account generate-sas --permissions acdlrw --account-name ${{ vars.ADF_STORAGE_ACCOUNT }} --services b --resource-types sco --expiry $(date -u -d "30 minutes" '+%Y-%m-%dT%H:%MZ') --https-only --output tsv)
+            az storage container create --name linkedtemplates --account-name ${{ vars.ADF_STORAGE_ACCOUNT }} --public-access off --auth-mode login
             
             SASToken=$(az storage container generate-sas --name linkedtemplates --account-name ${{ vars.ADF_STORAGE_ACCOUNT }} --permissions rwdl --expiry $(date -u -d "30 minutes" '+%Y-%m-%dT%H:%MZ') --https-only --output tsv)
             echo "AZURE_STORAGE_CONTAINER_URI=https://${{ vars.ADF_STORAGE_ACCOUNT }}.blob.core.windows.net/linkedtemplates" >> "$GITHUB_ENV"
