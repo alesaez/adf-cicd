@@ -89,6 +89,7 @@ jobs:
       - name: Deploy ARM template (Linked) to Resource Group
         uses: azure/arm-deploy@v2
         with:
+          deploymentName: "adf-cicd-deployment-${{ github.run_id }}"
           resourceGroupName: ${{ vars.ADF_RESOURCE_GROUP }}
           template: ./build/ArmTemplate/linkedTemplates/ArmTemplate_master.json
           parameters: ./build/ArmTemplate/linkedTemplates/ArmTemplateParameters_master.json factoryName="${{ vars.ADF_NAME }}" AzureDataLakeStorage_properties_typeProperties_url="https://stasanprd.dfs.core.windows.net/" AzureSqlDatabase_properties_typeProperties_server="asa-nprd-sql.database.windows.net" AzureSqlDatabase_properties_typeProperties_database="AdventureWorksDB" containerUri="${{ env.AZURE_STORAGE_CONTAINER_URI }}" containerSasToken="${{ env.AZURE_STORAGE_SAS_TOKEN }}"
