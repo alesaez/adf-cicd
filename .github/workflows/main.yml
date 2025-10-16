@@ -24,12 +24,12 @@ jobs:
 
       - name: Validate ADF resources
         run: |
-          npm run build validate "${{ github.workspace }}" ${{ secrets.ADF_RESOURCE_ID }}
+          npm run build validate "${{ github.workspace }}${{ vars.ADF_ROOT_FOLDER }}" ${{ secrets.ADF_RESOURCE_ID }}
         working-directory: ./build # replace as above
 
       - name: Validate and generate ARM template
         run: |
-          npm run build export "${{ github.workspace }}" ${{ secrets.ADF_RESOURCE_ID }} "ArmTemplate"
+          npm run build export "${{ github.workspace }}${{ vars.ADF_ROOT_FOLDER }}" ${{ secrets.ADF_RESOURCE_ID }} "ArmTemplate"
         # For preview mode, replace the above line with your preview command (ensure package.json contains it)
         working-directory: ./build
 
@@ -38,3 +38,31 @@ jobs:
         with:
           name: ArmTemplates
           path: ./build/ArmTemplate # replace with actual path where the export writes templates
+          
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Download ARM template artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ArmTemplates
+          path: ./build/ArmTemplate
+
+      # TODO: Add PrePostDeployment script steps here if needed
+
+      - name: Deploy ARM template to Resource Group
+        uses: azure/arm-deploy@v2
+        with:
+          resource-group-name: ${{ vars.ADF_RESOURCE_GROUP }}
+          template: ./build/ArmTemplate/ARMTemplateForFactory.json
+          parameters: ./build/ArmTemplate/ARMTemplateParametersForFactory.json factoryName="${{ vars.ADF_NAME }}" AzureDataLakeStorage_properties_typeProperties_url="https://stasanprd.dfs.core.windows.net/" AzureSqlDatabase_properties_typeProperties_server="asa-nprd-sql.database.windows.net" AzureSqlDatabase_properties_typeProperties_database="AdventureWorksDB"
+          deploymentMode: Incremental
+        # additionalArguments: "--what-if --rollback-on-error --what-if-exclude-change-types Create Ignore"
