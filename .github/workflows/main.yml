@@ -70,7 +70,7 @@ jobs:
             echo "Add current IP address to Storage Account firewall rules"
             MyIP=$(curl -s https://api.ipify.org)
             echo "MyIP: $MyIP"
-            az storage account network-rule add --account-name ${{ vars.ADF_STORAGE_ACCOUNT }} --ip-address $MyIP/32
+            az storage account network-rule add --account-name ${{ vars.ADF_STORAGE_ACCOUNT }} --ip-address "$MyIP/32"
 
             echo "Create container if not exists"
             az storage container create --name linkedtemplates --account-name ${{ vars.ADF_STORAGE_ACCOUNT }} --public-access off --auth-mode login
@@ -79,7 +79,7 @@ jobs:
             az storage blob upload-batch --account-name ${{ vars.ADF_STORAGE_ACCOUNT }} --source ./build/ArmTemplate/linkedTemplates --destination linkedtemplates --pattern "*.json" --overwrite --auth-mode login
 
             echo "Remove current IP address from Storage Account firewall rules"
-            az storage account network-rule remove --account-name ${{ vars.ADF_STORAGE_ACCOUNT }} --ip-address $MyIP/32
+            az storage account network-rule remove --account-name ${{ vars.ADF_STORAGE_ACCOUNT }} --ip-address "$MyIP/32"
 
             echo "Generate SAS token for the container, valid for 30 minutes"
             SASToken=$(az storage container generate-sas --name linkedtemplates --account-name ${{ vars.ADF_STORAGE_ACCOUNT }} --permissions rwdl --expiry $(date -u -d "30 minutes" '+%Y-%m-%dT%H:%MZ') --https-only --output tsv)
