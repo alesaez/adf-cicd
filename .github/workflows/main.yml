@@ -11,10 +11,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Use Node.js 18
+      - name: Use Node.js 22
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '22'
 
       - name: Install npm packages
         run: |
@@ -56,13 +56,36 @@ jobs:
           name: ArmTemplates
           path: ./build/ArmTemplate
 
+      - name: Upload linked templates to Blob Storage
+        uses: azure/cli@v2
+        with:
+          azcliversion: latest
+          inlineScript: |
+            az storage account create --name ${{ vars.ADF_STORAGE_ACCOUNT }} --resource-group ${{ vars.ADF_RESOURCE_GROUP }} --location ${{ vars.ADF_LOCATION }} --sku Standard_LRS --kind StorageV2 --access-tier Hot
+            az storage container create --name linkedtemplates --account-name ${{ vars.ADF_STORAGE_ACCOUNT }}
+            az storage blob upload-batch --account-name ${{ vars.ADF_STORAGE_ACCOUNT }} --source ./build/ArmTemplate/linkedTemplates --destination linkedtemplates --pattern *.json --overwrite
+
+            SASToken=$(az storage container generate-sas --name linkedtemplates --account-name ${{ vars.ADF_STORAGE_ACCOUNT }} --permissions rwdl --expiry $(date -u -d "30 minutes" '+%Y-%m-%dT%H:%MZ') --https-only --output tsv)
+            echo "AZURE_STORAGE_CONTAINER_URI=https://${{ vars.ADF_STORAGE_ACCOUNT }}.blob.core.windows.net/linkedtemplates" >> "$GITHUB_ENV"
+            echo "AZURE_STORAGE_SAS_TOKEN=$SASToken" >> "$GITHUB_ENV"
+
       # TODO: Add PrePostDeployment script steps here if needed
 
-      - name: Deploy ARM template to Resource Group
+      # - name: Deploy ARM template to Resource Group
+      #   uses: azure/arm-deploy@v2
+      #   with:
+      #     resourceGroupName: ${{ vars.ADF_RESOURCE_GROUP }}
+      #     template: ./build/ArmTemplate/ARMTemplateForFactory.json
+      #     parameters: ./build/ArmTemplate/ARMTemplateParametersForFactory.json factoryName="${{ vars.ADF_NAME }}" AzureDataLakeStorage_properties_typeProperties_url="https://stasanprd.dfs.core.windows.net/" AzureSqlDatabase_properties_typeProperties_server="asa-nprd-sql.database.windows.net" AzureSqlDatabase_properties_typeProperties_database="AdventureWorksDB"
+      #     deploymentMode: Incremental
+      #   # additionalArguments: "--what-if --rollback-on-error --what-if-exclude-change-types Create Ignore"
+
+
+      - name: Deploy ARM template (Linked) to Resource Group
         uses: azure/arm-deploy@v2
         with:
           resourceGroupName: ${{ vars.ADF_RESOURCE_GROUP }}
-          template: ./build/ArmTemplate/ARMTemplateForFactory.json
-          parameters: ./build/ArmTemplate/ARMTemplateParametersForFactory.json factoryName="${{ vars.ADF_NAME }}" AzureDataLakeStorage_properties_typeProperties_url="https://stasanprd.dfs.core.windows.net/" AzureSqlDatabase_properties_typeProperties_server="asa-nprd-sql.database.windows.net" AzureSqlDatabase_properties_typeProperties_database="AdventureWorksDB"
+          template: ./build/ArmTemplate/linkedTemplates/ArmTemplate_master.json
+          parameters: ./build/ArmTemplate/linkedTemplates/ARMTemplateParameters_master.json factoryName="${{ vars.ADF_NAME }}" AzureDataLakeStorage_properties_typeProperties_url="https://stasanprd.dfs.core.windows.net/" AzureSqlDatabase_properties_typeProperties_server="asa-nprd-sql.database.windows.net" AzureSqlDatabase_properties_typeProperties_database="AdventureWorksDB" containerUri="${{ env.AZURE_STORAGE_CONTAINER_URI }}" containerSasToken="${{ env.AZURE_STORAGE_SAS_TOKEN }}"
           deploymentMode: Incremental
         # additionalArguments: "--what-if --rollback-on-error --what-if-exclude-change-types Create Ignore"
