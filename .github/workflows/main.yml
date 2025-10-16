@@ -61,7 +61,7 @@ jobs:
       - name: Deploy ARM template to Resource Group
         uses: azure/arm-deploy@v2
         with:
-          resource-group-name: ${{ vars.ADF_RESOURCE_GROUP }}
+          resourceGroupName: ${{ vars.ADF_RESOURCE_GROUP }}
           template: ./build/ArmTemplate/ARMTemplateForFactory.json
           parameters: ./build/ArmTemplate/ARMTemplateParametersForFactory.json factoryName="${{ vars.ADF_NAME }}" AzureDataLakeStorage_properties_typeProperties_url="https://stasanprd.dfs.core.windows.net/" AzureSqlDatabase_properties_typeProperties_server="asa-nprd-sql.database.windows.net" AzureSqlDatabase_properties_typeProperties_database="AdventureWorksDB"
           deploymentMode: Incremental
