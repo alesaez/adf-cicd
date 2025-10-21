@@ -88,7 +88,7 @@ jobs:
             az storage account network-rule remove --account-name ${{ vars.ADF_STORAGE_ACCOUNT }} --ip-address $MyIP
 
             echo "Generate SAS token for the container, valid for 30 minutes"
-            SASToken=$(az storage container generate-sas --name linkedtemplates --account-name "${{ vars.ADF_STORAGE_ACCOUNT }}" --permissions r --expiry $(date -u -d "30 minutes" '+%Y-%m-%dT%H:%MZ') --as-user--auth-mode login --https-only --output tsv)
+            SASToken=$(az storage container generate-sas --name linkedtemplates --account-name "${{ vars.ADF_STORAGE_ACCOUNT }}" --permissions r --expiry $(date -u -d "30 minutes" '+%Y-%m-%dT%H:%MZ') --as-user --auth-mode login --https-only --output tsv)
             echo "Storage link: https://${{ vars.ADF_STORAGE_ACCOUNT }}.blob.core.windows.net/linkedtemplates"
             echo "SASToken: $SASToken"
             echo "AZURE_STORAGE_CONTAINER_URI=https://${{ vars.ADF_STORAGE_ACCOUNT }}.blob.core.windows.net/linkedtemplates" >> "$GITHUB_ENV"
