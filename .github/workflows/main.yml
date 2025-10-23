@@ -88,6 +88,7 @@ jobs:
             az storage account network-rule remove --account-name ${{ vars.ADF_STORAGE_ACCOUNT }} --ip-address $MyIP
 
             echo "Generate SAS token for the container, valid for 30 minutes"
+            
             SASToken=$(az storage container generate-sas --name linkedtemplates --account-name "${{ vars.ADF_STORAGE_ACCOUNT }}" --permissions r --expiry $(date -u -d "30 minutes" '+%Y-%m-%dT%H:%MZ') --as-user --auth-mode login --https-only --output tsv)
             echo "Storage link: https://${{ vars.ADF_STORAGE_ACCOUNT }}.blob.core.windows.net/linkedtemplates"
             echo "SASToken: $SASToken"
@@ -112,6 +113,6 @@ jobs:
           deploymentName: "adf-deployment-${{ github.run_id }}"
           resourceGroupName: ${{ vars.ADF_RESOURCE_GROUP }}
           template: ./build/ArmTemplate/linkedTemplates/ArmTemplate_master.json
-          parameters: ./build/ArmTemplate/linkedTemplates/ArmTemplateParameters_master.json factoryName="${{ vars.ADF_NAME }}" AzureDataLakeStorage_properties_typeProperties_url="https://stasanprd.dfs.core.windows.net/" AzureSqlDatabase_properties_typeProperties_server="asa-nprd-sql.database.windows.net" AzureSqlDatabase_properties_typeProperties_database="AdventureWorksDB" containerUri="${{ env.AZURE_STORAGE_CONTAINER_URI }}" containerSasToken="${{ env.AZURE_STORAGE_SAS_TOKEN }}"
+          parameters: ./build/ArmTemplate/linkedTemplates/ArmTemplateParameters_master.json factoryName="${{ vars.ADF_NAME }}" AzureDataLakeStorage_properties_typeProperties_url="https://stasanprd.dfs.core.windows.net/" AzureSqlDatabase_properties_typeProperties_server="asa-nprd-sql.database.windows.net" AzureSqlDatabase_properties_typeProperties_database="AdventureWorksDB" containerUri="${{ env.AZURE_STORAGE_CONTAINER_URI }}" containerSasToken="?${{ env.AZURE_STORAGE_SAS_TOKEN }}"
           deploymentMode: Incremental
           # additionalArguments: "--what-if --rollback-on-error" # --what-if-exclude-change-types Create Ignore"
