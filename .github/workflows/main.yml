@@ -107,12 +107,17 @@ jobs:
       #   # additionalArguments: "--what-if --rollback-on-error --what-if-exclude-change-types Create Ignore"
 
 
-      - name: Deploy ARM template (Linked) to Resource Group
-        uses: azure/arm-deploy@v2
-        with:
-          deploymentName: "adf-deployment-${{ github.run_id }}"
-          resourceGroupName: ${{ vars.ADF_RESOURCE_GROUP }}
-          template: ./build/ArmTemplate/linkedTemplates/ArmTemplate_master.json
-          parameters: ./build/ArmTemplate/linkedTemplates/ArmTemplateParameters_master.json factoryName="${{ vars.ADF_NAME }}" AzureDataLakeStorage_properties_typeProperties_url="https://stasanprd.dfs.core.windows.net/" AzureSqlDatabase_properties_typeProperties_server="asa-nprd-sql.database.windows.net" AzureSqlDatabase_properties_typeProperties_database="AdventureWorksDB" containerUri="${{ env.AZURE_STORAGE_CONTAINER_URI }}" containerSasToken="?${{ env.AZURE_STORAGE_SAS_TOKEN }}"
-          deploymentMode: Incremental
-          # additionalArguments: "--what-if --rollback-on-error" # --what-if-exclude-change-types Create Ignore"
+      # - name: Deploy ARM template (Linked) to Resource Group
+      #   uses: azure/arm-deploy@v2
+      #   with:
+      #     deploymentName: "adf-deployment-${{ github.run_id }}"
+      #     resourceGroupName: ${{ vars.ADF_RESOURCE_GROUP }}
+      #     template: ./build/ArmTemplate/linkedTemplates/ArmTemplate_master.json
+      #     parameters: ./build/ArmTemplate/linkedTemplates/ArmTemplateParameters_master.json factoryName="${{ vars.ADF_NAME }}" AzureDataLakeStorage_properties_typeProperties_url="https://stasanprd.dfs.core.windows.net/" AzureSqlDatabase_properties_typeProperties_server="asa-nprd-sql.database.windows.net" AzureSqlDatabase_properties_typeProperties_database="AdventureWorksDB" containerUri="${{ env.AZURE_STORAGE_CONTAINER_URI }}" containerSasToken="?${{ env.AZURE_STORAGE_SAS_TOKEN }}"
+      #     deploymentMode: Incremental
+      #     # additionalArguments: "--what-if --rollback-on-error" # --what-if-exclude-change-types Create Ignore"
+
+      - name: Deploy ARM template with AZ CLI
+        run: |
+          cd ./build/ArmTemplate/linkedTemplates
+          az deployment group create --name "adf-deployment-${{ github.run_id }}" --resource-group ${{ vars.ADF_RESOURCE_GROUP }} --template-file ArmTemplate_master.json --parameters @ArmTemplateParameters_master.json --parameters containerUri="${{ env.AZURE_STORAGE_CONTAINER_URI }}" containerSasToken="?${{ env.AZURE_STORAGE_SAS_TOKEN }}"
