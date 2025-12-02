@@ -131,4 +131,4 @@ jobs:
       - name: Deploy ARM template with AZ CLI
         run: |
           cd ./build/ArmTemplate/linkedTemplates
-          az deployment group create --name "adf-deployment-${{ github.run_id }}" --resource-group ${{ vars.ADF_RESOURCE_GROUP }} --template-file ArmTemplate_master.json --parameters @ArmTemplateParameters_master.json --parameters containerUri="${{ env.AZURE_STORAGE_CONTAINER_URI }}" containerSasToken="?${{ env.AZURE_STORAGE_SAS_TOKEN }}"
+          az deployment group create --name "adf-deployment-${{ github.run_id }}" --resource-group ${{ vars.ADF_RESOURCE_GROUP }} --template-file ArmTemplate_master.json --parameters @ArmTemplateParameters_master.json --parameters containerUri="${{ env.AZURE_STORAGE_CONTAINER_URI }}" containerSasToken="?${{ env.AZURE_STORAGE_SAS_TOKEN }}" --query-string "${{ env.AZURE_STORAGE_SAS_TOKEN }}"
