@@ -117,6 +117,28 @@ jobs:
       #     deploymentMode: Incremental
       #   # additionalArguments: "--what-if --rollback-on-error --what-if-exclude-change-types Create Ignore"
 
+      - name: List Override Params
+        shell: pwsh
+        run: |
+          $paramPath = "./build/ArmTemplate/linkedTemplates/ArmTemplateParameters_master.json"
+          
+          $parameters = (Get-Content $paramPath | ConvertFrom-Json).parameters | ConvertTo-Json
+          $params = (ConvertFrom-Json $parameters).psobject.properties  
+
+          $paramStr=""
+          foreach ($name in $params.name) {
+              $paramStr+= $name + "=`"" + $params[$name].value.value + "`" "
+          }
+
+          Write-Host ("#"*100)
+          Write-Host ("#"*15)"Override Parameters "("#"*15)
+          Write-Host ("#"*100)
+          Write-Host ""
+          Write-Host $paramStr
+          Write-Host ""
+          Write-Host ("#"*100)
+          
+
 
       # - name: Deploy ARM template (Linked) to Resource Group
       #   uses: azure/arm-deploy@v2
