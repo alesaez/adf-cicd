@@ -112,9 +112,8 @@ jobs:
         run: |
           # Generate a fine-grained token with 1 hour expiration using gh CLI
           # The token will have read access to repository contents
-          echo ${{ secrets.GITHUB_TOKEN }} | gh auth login --with-token
           gh auth token
-          
+
           TEMP_TOKEN=$(gh auth token)
           echo "GITHUB_RAW_TOKEN=${TEMP_TOKEN}" >> "$GITHUB_ENV"
           
