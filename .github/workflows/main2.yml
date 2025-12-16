@@ -112,6 +112,9 @@ jobs:
         run: |
           # Generate a fine-grained token with 1 hour expiration using gh CLI
           # The token will have read access to repository contents
+          echo ${{ secrets.GITHUB_TOKEN }} | gh auth login --with-token
+          gh auth token
+          
           TEMP_TOKEN=$(gh auth token)
           echo "GITHUB_RAW_TOKEN=${TEMP_TOKEN}" >> "$GITHUB_ENV"
           
@@ -146,17 +149,15 @@ jobs:
           Write-Host ""
           Write-Host ("#"*100)
           
-
-
-      - name: Deploy ARM template (Linked) to Resource Group
-        uses: azure/arm-deploy@v2
-        with:
-          deploymentName: "adf-deployment-${{ github.run_id }}"
-          resourceGroupName: ${{ vars.ADF_RESOURCE_GROUP }}
-          template: ./linkedTemplates/ArmTemplate_master.json
-          parameters: ./linkedTemplates/ArmTemplateParameters_master.json factoryName="${{ vars.ADF_NAME }}" AzureDataLakeStorage_properties_typeProperties_url="https://stasanprd.dfs.core.windows.net/" AzureSqlDatabase_properties_typeProperties_server="asa-nprd-sql.database.windows.net" AzureSqlDatabase_properties_typeProperties_database="AdventureWorksDB" containerUri="${{ env.GITHUB_CONTAINER_URI }}/linkedTemplates" containerSasToken="?token=${{ env.GITHUB_RAW_TOKEN }}"
-          deploymentMode: Incremental
-          # additionalArguments: "--what-if --rollback-on-error" # --what-if-exclude-change-types Create Ignore"
+    #   - name: Deploy ARM template (Linked) to Resource Group
+    #     uses: azure/arm-deploy@v2
+    #     with:
+    #       deploymentName: "adf-deployment-${{ github.run_id }}"
+    #       resourceGroupName: ${{ vars.ADF_RESOURCE_GROUP }}
+    #       template: ./linkedTemplates/ArmTemplate_master.json
+    #       parameters: ./linkedTemplates/ArmTemplateParameters_master.json factoryName="${{ vars.ADF_NAME }}" AzureDataLakeStorage_properties_typeProperties_url="https://stasanprd.dfs.core.windows.net/" AzureSqlDatabase_properties_typeProperties_server="asa-nprd-sql.database.windows.net" AzureSqlDatabase_properties_typeProperties_database="AdventureWorksDB" containerUri="${{ env.GITHUB_CONTAINER_URI }}/linkedTemplates" containerSasToken="?token=${{ env.GITHUB_RAW_TOKEN }}"
+    #       deploymentMode: Incremental
+    #       # additionalArguments: "--what-if --rollback-on-error" # --what-if-exclude-change-types Create Ignore"
 
       - name: Deploy ARM template with AZ CLI
         run: |
