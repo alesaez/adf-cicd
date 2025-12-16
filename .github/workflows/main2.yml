@@ -44,6 +44,9 @@ jobs:
           COMMIT_SHORT="${{ github.sha }}"
           COMMIT_SHORT="${COMMIT_SHORT:0:10}"
           
+          # Save ARM templates to a temporary location before switching branches
+          cp -r build/ArmTemplate /tmp/ArmTemplate_temp
+          
           # Configure git
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
@@ -65,8 +68,9 @@ jobs:
             git rm -rf . 2>/dev/null || true
           fi
           
-          # Copy ARM templates to root
-          cp -r build/ArmTemplate/* .
+          # Copy ARM templates from temporary location to root
+          cp -r /tmp/ArmTemplate_temp/* .
+          rm -rf /tmp/ArmTemplate_temp
           
           # Add all changes
           git add -A
