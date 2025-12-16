@@ -51,6 +51,9 @@ jobs:
           # Check if adf_publish branch exists remotely
           git fetch origin adf_publish 2>/dev/null || true
           
+          # Stash or remove untracked files to avoid conflicts
+          git clean -fd
+          
           # Create a new orphan branch or checkout existing
           if git show-ref --verify --quiet refs/remotes/origin/adf_publish; then
             git checkout adf_publish
