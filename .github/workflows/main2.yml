@@ -1,6 +1,12 @@
 name: CI/CD v2 (Git-based)
 
 on:
+  workflow_dispatch:  
+    inputs:
+        branch:
+         description: 'ADF Publish Branch'
+         required: true
+         default: 'adf_publish'
   push:
     branches: [ main ]
 
@@ -38,7 +44,7 @@ jobs:
         # For preview mode, replace the above line with your preview command (ensure package.json contains it)
         working-directory: ./build
 
-      - name: Commit and push ARM templates to adf_publish branch
+      - name: Commit and push ARM templates to publish branch
         run: |
           # Get first 10 characters of current commit SHA
           COMMIT_SHORT="${{ github.sha }}"
@@ -51,20 +57,20 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           
-          # Check if adf_publish branch exists remotely
-          git fetch origin adf_publish 2>/dev/null || true
+          # Check if publish branch exists remotely
+          git fetch origin ${{ inputs.branch }} 2>/dev/null || true
           
           # Stash or remove untracked files to avoid conflicts
           git clean -fd
           
           # Create a new orphan branch or checkout existing
-          if git show-ref --verify --quiet refs/remotes/origin/adf_publish; then
-            git checkout adf_publish
-            git pull origin adf_publish
+          if git show-ref --verify --quiet refs/remotes/origin/${{ inputs.branch }}; then
+            git checkout ${{ inputs.branch }}
+            git pull origin ${{ inputs.branch }}
             # Clear the branch
             git rm -rf . 2>/dev/null || true
           else
-            git checkout --orphan adf_publish
+            git checkout --orphan ${{ inputs.branch }}
             git rm -rf . 2>/dev/null || true
           fi
           
@@ -80,22 +86,34 @@ jobs:
             echo "No changes to commit"
           else
             git commit -m "Published ARM templates from commit ${COMMIT_SHORT}"
-            git push origin adf_publish
+            git push origin ${{ inputs.branch }}
           fi
           
   deploy:
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout adf_publish branch
+      - name: Checkout publish branch
         uses: actions/checkout@v4
         with:
-          ref: adf_publish
+          ref: ${{ inputs.branch }}
 
       - uses: azure/login@v2
         with:
           creds: '{"clientId":"${{ vars.AZURE_CLIENT_ID }}","clientSecret":"${{ secrets.AZURE_CLIENT_SECRET }}","subscriptionId":"${{ vars.AZURE_SUBSCRIPTION_ID }}","tenantId":"${{ vars.AZURE_TENANT_ID }}"}'
       
+      - name: Set Container URI
+        id: container_uri
+        run: |
+          # Using Logic App endpoint to serve a GitHub Proxy to retrieve ARM template content. These are the parameters:
+          # repo: Owner and repository name. Ex. alesaez/adf-cicd
+          # branch: Publish branch. Ex. adf-publish
+          # file: file name (include folder path if any). Ex. linkedTemplates/ArmTemplate_master.json (do not include leading slash)
+          # token: GitHub Token will be use to authenticate as it has a preset expiration.
+          
+          CONTAINER_URI="${{ secrets.AZURE_LOGIC_APP_ENDPOINT }}&repo=${{ github.repository }}&branch=${{ inputs.branch }}&file="
+          echo "GITHUB_CONTAINER_URI=${CONTAINER_URI}" >> "$GITHUB_ENV"
+          
       # TODO: Add PrePostDeployment script steps here if needed
 
       - name: List Override Params
@@ -135,4 +153,4 @@ jobs:
         run: |
 
           cd ./linkedTemplates
-          az deployment group create --name "adf-deployment-${{ github.run_id }}" --resource-group ${{ vars.ADF_RESOURCE_GROUP }} --template-file ArmTemplate_master.json --parameters @ArmTemplateParameters_master.json --parameters containerUri="${{ secrets.AZURE_LOGIC_APP_ENDPOINT }}linkedTemplates" containerSasToken="&token=${{ env.GH_TOKEN }}"
+          az deployment group create --name "adf-deployment-${{ github.run_id }}" --resource-group ${{ vars.ADF_RESOURCE_GROUP }} --template-file ArmTemplate_master.json --parameters @ArmTemplateParameters_master.json --parameters containerUri="${{ secrets.GITHUB_CONTAINER_URI }}linkedTemplates" containerSasToken="&token=${{ env.GH_TOKEN }}"
