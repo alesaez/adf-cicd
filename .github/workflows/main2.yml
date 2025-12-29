@@ -96,35 +96,6 @@ jobs:
         with:
           creds: '{"clientId":"${{ vars.AZURE_CLIENT_ID }}","clientSecret":"${{ secrets.AZURE_CLIENT_SECRET }}","subscriptionId":"${{ vars.AZURE_SUBSCRIPTION_ID }}","tenantId":"${{ vars.AZURE_TENANT_ID }}"}'
       
-      - name: Setup GitHub CLI
-        run: |
-          type -p curl >/dev/null || (sudo apt update && sudo apt install curl -y)
-          curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
-          sudo chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg
-          echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
-          sudo apt update
-          sudo apt install gh -y
-
-      - name: Generate GitHub temporary token for raw file access
-        id: generate_token
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          # Generate a fine-grained token with 1 hour expiration using gh CLI
-          # The token will have read access to repository contents
-          gh auth token
-
-          TEMP_TOKEN=$(gh auth token)
-          echo "GITHUB_RAW_TOKEN=${TEMP_TOKEN}" >> "$GITHUB_ENV"
-          
-          # Construct the base URI for raw files
-          # Format: https://raw.githubusercontent.com/owner/repo/refs/heads/branch/path
-          CONTAINER_URI="https://raw.githubusercontent.com/${{ github.repository }}/refs/heads/adf_publish"
-          echo "GITHUB_CONTAINER_URI=${CONTAINER_URI}" >> "$GITHUB_ENV"
-          
-          echo "Container URI: ${CONTAINER_URI}"
-          echo "Note: Generated temporary token valid for 1 hour"
-          
       # TODO: Add PrePostDeployment script steps here if needed
 
       - name: List Override Params
@@ -159,7 +130,9 @@ jobs:
     #       # additionalArguments: "--what-if --rollback-on-error" # --what-if-exclude-change-types Create Ignore"
 
       - name: Deploy ARM template with AZ CLI
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
 
           cd ./linkedTemplates
-          az deployment group create --name "adf-deployment-${{ github.run_id }}" --resource-group ${{ vars.ADF_RESOURCE_GROUP }} --template-file ArmTemplate_master.json --parameters @ArmTemplateParameters_master.json --parameters containerUri="${{ env.GITHUB_CONTAINER_URI }}/linkedTemplates" containerSasToken="?token=${{ env.GITHUB_RAW_TOKEN }}"
+          az deployment group create --name "adf-deployment-${{ github.run_id }}" --resource-group ${{ vars.ADF_RESOURCE_GROUP }} --template-file ArmTemplate_master.json --parameters @ArmTemplateParameters_master.json --parameters containerUri="${{ secrets.AZURE_LOGIC_APP_ENDPOINT }}linkedTemplates" containerSasToken="&token=${{ env.GH_TOKEN }}"
