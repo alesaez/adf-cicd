@@ -3,13 +3,9 @@ name: CI/CD v2 (Git-based)
 on:
   push:
     branches: [ main ]
-    
-  workflow_dispatch:  
-    inputs:
-        branch:
-         description: 'ADF Publish Branch'
-         required: true
-         default: 'adf_publish'
+
+env: 
+    branch: 'adf_publish'
 
 jobs:
   build:
@@ -59,19 +55,19 @@ jobs:
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           
           # Check if publish branch exists remotely
-          git fetch origin ${{ inputs.branch }} 2>/dev/null || true
+          git fetch origin ${{ env.branch }} 2>/dev/null || true
           
           # Stash or remove untracked files to avoid conflicts
           git clean -fd
           
           # Create a new orphan branch or checkout existing
-          if git show-ref --verify --quiet refs/remotes/origin/${{ inputs.branch }}; then
-            git checkout ${{ inputs.branch }}
-            git pull origin ${{ inputs.branch }}
+          if git show-ref --verify --quiet refs/remotes/origin/${{ env.branch }}; then
+            git checkout ${{ env.branch }}
+            git pull origin ${{ env.branch }}
             # Clear the branch
             git rm -rf . 2>/dev/null || true
           else
-            git checkout --orphan ${{ inputs.branch }}
+            git checkout --orphan ${{ env.branch }}
             git rm -rf . 2>/dev/null || true
           fi
           
@@ -87,7 +83,7 @@ jobs:
             echo "No changes to commit"
           else
             git commit -m "Published ARM templates from commit ${COMMIT_SHORT}"
-            git push origin ${{ inputs.branch }}
+            git push origin ${{ env.branch }}
           fi
           
   deploy:
@@ -97,7 +93,7 @@ jobs:
       - name: Checkout publish branch
         uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.branch }}
+          ref: ${{ env.branch }}
 
       - uses: azure/login@v2
         with:
@@ -112,7 +108,7 @@ jobs:
           # file: file name (include folder path if any). Ex. linkedTemplates/ArmTemplate_master.json (do not include leading slash)
           # token: GitHub Token will be use to authenticate as it has a preset expiration.
           
-          CONTAINER_URI="${{ secrets.AZURE_LOGIC_APP_ENDPOINT }}&repo=${{ github.repository }}&branch=${{ inputs.branch }}&file="
+          CONTAINER_URI="${{ secrets.AZURE_LOGIC_APP_ENDPOINT }}&repo=${{ github.repository }}&branch=${{ env.branch }}&file="
           echo "GITHUB_CONTAINER_URI=${CONTAINER_URI}" >> "$GITHUB_ENV"
           
       # TODO: Add PrePostDeployment script steps here if needed
