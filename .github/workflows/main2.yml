@@ -107,9 +107,9 @@ jobs:
           # branch: Publish branch. Ex. adf-publish
           # file: file name (include folder path if any). Ex. linkedTemplates/ArmTemplate_master.json (do not include leading slash)
           # token: GitHub Token will be use to authenticate as it has a preset expiration.
-          
-          REPO=$(echo "${{ github.repository }}" | awk -F/ '{print $NF}')
-          CONTAINER_URI="${{ secrets.AZURE_LOGIC_APP_ENDPOINT }}&owner=${{ github.repository_owner }}&repo=$REPO&branch=${{ env.branch }}&file="
+          echo "${{ github.repository }}" | awk -F/ '{print $NF}'
+          REPO=echo "${{ github.repository }}" | awk -F/ '{print $NF}'
+          CONTAINER_URI="${{ secrets.AZURE_LOGIC_APP_ENDPOINT }}&owner=${{ github.repository_owner }}&repo=${REPO}&branch=${{ env.branch }}&file="
           echo "GITHUB_CONTAINER_URI=${CONTAINER_URI}" >> "$GITHUB_ENV"
           
       # TODO: Add PrePostDeployment script steps here if needed
