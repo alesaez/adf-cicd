@@ -103,7 +103,8 @@ jobs:
         id: container_uri
         run: |
           # Using Logic App endpoint to serve a GitHub Proxy to retrieve ARM template content. These are the parameters:
-          # repo: Owner and repository name. Ex. alesaez/adf-cicd
+          # owner: Organization/Owner of the repo. Ex. alesaez
+          # repo: Repository name. Ex. adf-cicd
           # branch: Publish branch. Ex. adf-publish
           # file: file name (include folder path if any). Ex. linkedTemplates/ArmTemplate_master.json (do not include leading slash)
           # token: GitHub Token will be use to authenticate as it has a preset expiration.
