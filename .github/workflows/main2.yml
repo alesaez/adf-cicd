@@ -147,7 +147,7 @@ jobs:
 
       - name: Deploy ARM template with AZ CLI
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_PAT_TOKEN }}
         run: |
 
           cd ./linkedTemplates
