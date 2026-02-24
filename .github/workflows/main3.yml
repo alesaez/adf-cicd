@@ -1,0 +1,131 @@
+name: CI/CD (Logic App + Storage Account)
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install npm packages
+        run: |
+          npm install
+          npm ci
+        working-directory: ./build # replace with the folder that contains package.json
+
+      - name: Validate ADF resources
+        run: |
+          npm run build validate "${{ github.workspace }}${{ vars.ADF_ROOT_FOLDER }}" ${{ secrets.ADF_RESOURCE_ID }}
+        working-directory: ./build # replace as above
+
+      - name: Validate and generate ARM template
+        run: |
+          npm run build export "${{ github.workspace }}${{ vars.ADF_ROOT_FOLDER }}" ${{ secrets.ADF_RESOURCE_ID }} "ArmTemplate"
+        # For preview mode, replace the above line with your preview command (ensure package.json contains it)
+        working-directory: ./build
+
+      - name: Upload ARM template artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ArmTemplates
+          path: ./build/ArmTemplate # replace with actual path where the export writes templates
+          
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+    
+      - uses: azure/login@v2
+        with:
+          creds: '{"clientId":"${{ vars.AZURE_CLIENT_ID }}","clientSecret":"${{ secrets.AZURE_CLIENT_SECRET }}","subscriptionId":"${{ vars.AZURE_SUBSCRIPTION_ID }}","tenantId":"${{ vars.AZURE_TENANT_ID }}"}'
+                
+      - name: Download ARM template artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ArmTemplates
+          path: ./build/ArmTemplate
+
+      - name: List Override Params
+        shell: pwsh
+        run: |
+          $paramPath = "./build/ArmTemplate/linkedTemplates/ArmTemplateParameters_master.json"
+          
+          $parameters = (Get-Content $paramPath | ConvertFrom-Json).parameters | ConvertTo-Json
+          $params = (ConvertFrom-Json $parameters).psobject.properties  
+
+          $paramStr=""
+          foreach ($name in $params.name) {
+              $paramStr+= $name + "=`"" + $params[$name].value.value + "`" "
+          }
+
+          Write-Host ("#"*100)
+          Write-Host ("#"*15)"Override Parameters "("#"*15)
+          Write-Host ("#"*100)
+          Write-Host ""
+          Write-Host $paramStr
+          Write-Host ""
+          Write-Host ("#"*100)
+            
+      - name: Upload linked templates to Blob Storage
+        uses: azure/cli@v2
+        with:
+          azcliversion: latest
+          inlineScript: |
+            echo "List files for debugging"
+            ls -la ./build/ArmTemplate/linkedTemplates
+
+            echo "Create storage account and container if not exists"
+            az storage account create --name ${{ vars.ADF_STORAGE_ACCOUNT }} --resource-group ${{ vars.ADF_RESOURCE_GROUP }} --location ${{ vars.ADF_LOCATION }} --sku Standard_LRS --kind StorageV2 --access-tier Hot --https-only true --bypass AzureServices --default-action Deny --public-network-access Enabled
+            
+            echo "Add current IP address to Storage Account firewall rules"
+            MyIP=$(curl -s https://api.ipify.org)
+            echo "MyIP: $MyIP"
+            az storage account network-rule add --account-name ${{ vars.ADF_STORAGE_ACCOUNT }} --ip-address $MyIP
+            # Wait for a few seconds to ensure the rule is applied
+            sleep 15
+
+            echo "Create container if not exists"
+            checkContainer=$(az storage container exists --name linkedtemplates --account-name ${{ vars.ADF_STORAGE_ACCOUNT }} --auth-mode login --query exists)
+            echo "checkContainer: $checkContainer"
+            if [ "$checkContainer" = "false" ]; then
+              az storage container create --name linkedtemplates --account-name ${{ vars.ADF_STORAGE_ACCOUNT }} --public-access off --auth-mode login
+            fi
+
+            echo "Upload linked templates"
+            az storage blob upload-batch --account-name ${{ vars.ADF_STORAGE_ACCOUNT }} --source ./build/ArmTemplate/linkedTemplates --destination linkedtemplates --pattern "*.json" --overwrite --auth-mode login
+
+            echo "Remove current IP address from Storage Account firewall rules"
+            az storage account network-rule remove --account-name ${{ vars.ADF_STORAGE_ACCOUNT }} --ip-address $MyIP
+            
+          
+      - name: Set Container URI
+        id: container_uri
+        run: |
+          # Using Logic App endpoint to serve a Storage Proxy to retrieve ARM template content. 
+          # Logic app already uses Managed Identity to authenticate to Storage Account, so we can leverage that to avoid handling SAS token in GitHub Actions. These are the parameters:
+          # These are the query parameters:
+          # - file: Blob uri (include container/file_path). Ex. linkedTemplates/ArmTemplate_master.json (do not include leading slash)
+        
+          CONTAINER_URI="${{ secrets.AZURE_LOGIC_APP_STORAGE_ENDPOINT }}&file="
+          echo "CONTAINER_URI=${CONTAINER_URI}" >> "$GITHUB_ENV"
+          
+          
+      # TODO: Add PrePostDeployment script steps here if needed
+
+      - name: Deploy ARM template with AZ CLI
+        run: |
+          cd ./build/ArmTemplate/linkedTemplates
+          az deployment group create --name "adf-deployment-${{ github.run_id }}" --resource-group ${{ vars.ADF_RESOURCE_GROUP }} --template-file ArmTemplate_master.json --parameters @ArmTemplateParameters_master.json --parameters containerUri="${{ env.CONTAINER_URI }}" 
+          
+      # TODO: Add PrePostDeployment script steps here if needed
