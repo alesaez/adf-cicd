@@ -117,7 +117,7 @@ jobs:
           # These are the query parameters:
           # - file: Blob uri (include container/file_path). Ex. linkedTemplates/ArmTemplate_master.json (do not include leading slash)
         
-          CONTAINER_URI="${{ secrets.AZURE_LOGIC_APP_STORAGE_ENDPOINT }}&file=linkedTemplates"
+          CONTAINER_URI="${{ secrets.AZURE_LOGIC_APP_STORAGE_ENDPOINT }}&file=linkedtemplates"
           echo "CONTAINER_URI=${CONTAINER_URI}" >> "$GITHUB_ENV"
           
           
