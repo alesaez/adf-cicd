@@ -1,11 +1,15 @@
 name: CI/CD v2 (Git-based)
 
 on:
-  push:
-    branches: [ main ]
-
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to publish ARM templates to (will be created if it does not exist)'
+        required: true
+        default: 'adf_publish'
+  
 env: 
-    branch: 'adf_publish'
+    branch: ${{ github.event.inputs.branch }}
 
 jobs:
   build:
